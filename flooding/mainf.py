@@ -1,35 +1,13 @@
 import logging
+from multiprocessing import forkserver
 import sys
 from getpass import getpass
 from argparse import ArgumentParser
-
-import slixmpp
+from flooding import Flooding, RegisterChat
 
 import asyncio
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-class Flooding(slixmpp.ClientXMPP):
-
-    def __init__(self, jid, password):
-        slixmpp.ClientXMPP.__init__(self, jid, password)
-        self.add_event_handler("session_start", self.start)
-        self.add_event_handler("message", self.message)
-        self.register_plugin('xep_0030') # Service Discovery
-        self.register_plugin('xep_0004') # Data Forms
-        self.register_plugin('xep_0060') # PubSub
-        self.register_plugin('xep_0199') # XMPP Ping
-
-    async def start(self, event):
-
-        self.send_presence()
-        await self.get_roster()
-
-    def message(self, msg):
-
-        if msg['type'] in ('chat', 'normal'):
-            msg.reply("Thanks for sending\n%(body)s" % msg).send()
-
 
 if __name__ == '__main__':
 
@@ -64,18 +42,20 @@ if __name__ == '__main__':
 
         if opcion == "1":
             user = input("Ingresa tu username: ")
-            print("Ingresa tu password")
-            password = getpass()
+            password = getpass("Ingresa tu password: ")
 
-            xmpp = Flooding(args.jid, args.password)
-            xmpp.connect()
-            xmpp.process()
+            xmpp = Flooding(user, password)
+            xmpp.connect(disable_starttls=True)
+            xmpp.process(forever=False)
             flag = False
         elif opcion == "2":
             print("Registrandose")
-            xmpp = Flooding(args.jid, args.password)
-            xmpp.connect()
-            xmpp.process()
+            user = input("Ingresa tu username: ")
+            password = getpass("Ingresa tu password: ")
+            xmpp = RegisterChat(user,password)
+            xmpp.connect(disable_starttls=True)
+            xmpp.process(forever=False)
+            xmpp['xep_0077'].force_registration = True
             flag = False
         elif opcion == "3":
             print("Saliendo")
