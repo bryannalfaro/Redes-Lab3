@@ -90,6 +90,7 @@ class Flooding(slixmpp.ClientXMPP):
             msg['nodes'].append(node)
             msg['distance'] = msg['distance'] + 1
             msg['id'] = id(node)
+            self.flag = True
             self.nodes_visited.append(node)
             for receiver in receivers_node:
                 receiver = self.json_data['config'][receiver]
