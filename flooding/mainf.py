@@ -41,7 +41,8 @@ if __name__ == '__main__':
         opcion = input("Ingrese una opcion: ")
 
         if opcion == "1":
-            user = input("Ingresa tu username: ")
+            user = input("Ingresa tu username (sin @alumchat.fun): ")
+            user = user + "@alumchat.fun"
             password = getpass("Ingresa tu password: ")
 
             xmpp = Flooding(user, password)
@@ -50,7 +51,8 @@ if __name__ == '__main__':
             flag = False
         elif opcion == "2":
             print("Registrandose")
-            user = input("Ingresa tu username: ")
+            user = input("Ingresa tu username (sin @alumchat.fun): ")
+            user = user + "@alumchat.fun"
             password = getpass("Ingresa tu password: ")
             xmpp = RegisterChat(user,password)
             xmpp.connect(disable_starttls=True)

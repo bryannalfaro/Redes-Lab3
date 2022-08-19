@@ -27,7 +27,9 @@ class Flooding(slixmpp.ClientXMPP):
         self.register_plugin('xep_0060') # PubSub
         self.register_plugin('xep_0199') # XMPP Ping
         self.jid = jid
-
+        self.flag = False
+        self.run = False
+        self.nodes_visited = []
     async def start(self, event):
 
         self.send_presence()
@@ -59,8 +61,9 @@ class Flooding(slixmpp.ClientXMPP):
 
     #When user sends flood message
     async def flood_send(self):
-        print("Ingrese el usuario al que desea enviar el mensaje")
+        print("Ingrese el usuario al que desea enviar el mensaje (sin @alumchat.fun): ")
         user = await ainput("Usuario: ")
+        user = user + "@alumchat.fun"
         print("Ingrese el mensaje que desea enviar")
         message = await ainput("Mensaje: ")
         '''Nodo fuente [texto + @]
@@ -86,8 +89,11 @@ class Flooding(slixmpp.ClientXMPP):
             msg['hops'] = msg['hops'] + 1
             msg['nodes'].append(node)
             msg['distance'] = msg['distance'] + 1
+            msg['id'] = id(node)
+            self.nodes_visited.append(node)
             for receiver in receivers_node:
                 receiver = self.json_data['config'][receiver]
+
                 self.send_message(mto=receiver, mbody=str(msg))
         except:
             print('No hay nodos')
@@ -96,37 +102,56 @@ class Flooding(slixmpp.ClientXMPP):
     #When user receives message
     def message(self, msg):
 
-        if msg['type'] in ('chat', 'normal'):
 
+        if msg['type'] in ('chat', 'normal'):
             msg_f = eval(msg['body'])
-            if msg_f['destination'] == self.jid:
-                print("LLEGUE A MI DESTINO")
-                print("\nMensaje recibido de: ", msg_f['source'])
-                print("Mensaje: ", msg_f['message'])
-                print("Saltos: ", msg_f['hops'])
-                print("Distancia: ", msg_f['distance'])
-                print("Nodos: ", msg_f['nodes'])
-                print("\n")
+            node = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['source'])]
+            #print("VINEE")
+            #print("vine nodos pasados", msg_f['nodes'])
+            #print("nodes visited", self.nodes_visited)
+            if self.flag == False:
+                self.nodes_visited.append(node)
+                self.flag = True
             else:
-                print("\nMensaje recibido de: ", msg_f['source'])
-                print("Mensaje: ", msg_f['message'])
-                print("Saltos: ", msg_f['hops'])
-                print("Distancia: ", msg_f['distance'])
-                print("Nodos: ", msg_f['nodes'])
-                print("\n")
-                print('Getting key: ',list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)])
-                node = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
-                try: #cuando ya no hay mas nodos a quien enviar desde un nodo
-                    receivers_node= self.topology['config'][node]
-                    print('receivers in message: ',receivers_node)
-                    msg_f['hops'] = msg_f['hops'] + 1
-                    msg_f['nodes'].append(node)
-                    msg_f['distance'] = msg_f['distance'] + 1
-                    for receiver in receivers_node:
-                        receiver = self.json_data['config'][receiver]
-                        self.send_message(mto=receiver, mbody=str(msg_f))
-                except:
-                    print('No hay nodos')
+
+                #print('nodes visiteeeeeed', self.nodes_visited)
+                for node in msg_f['nodes']:
+
+                    if node in self.nodes_visited:
+                        #print("im here")
+                        self.run = True
+
+            if self.run == False:
+
+                if msg_f['destination'] == self.jid:
+                    print("LLEGUE A MI DESTINO")
+                    print("\nMensaje recibido de: ", msg_f['source'])
+                    print("Mensaje: ", msg_f['message'])
+                    print("Saltos: ", msg_f['hops'])
+                    print("Distancia: ", msg_f['distance'])
+                    print("Nodos: ", msg_f['nodes'])
+                    print("\n")
+                else:
+                    print("\nMensaje recibido de: ", msg_f['source'])
+                    print("Mensaje: ", msg_f['message'])
+                    print("Saltos: ", msg_f['hops'])
+                    print("Distancia: ", msg_f['distance'])
+                    print("Nodos: ", msg_f['nodes'])
+                    print("\n")
+                    print('Getting key: ',list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)])
+                    node = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+                    try: #cuando ya no hay mas nodos a quien enviar desde un nodo
+                        receivers_node= self.topology['config'][node]
+                        print('receivers in message: ',receivers_node)
+                        msg_f['hops'] = msg_f['hops'] + 1
+                        msg_f['nodes'].append(node)
+                        msg_f['distance'] = msg_f['distance'] + 1
+                        for receiver in receivers_node:
+                            receiver = self.json_data['config'][receiver]
+                            self.send_message(mto=receiver, mbody=str(msg_f))
+                        self.nodes_visited.append(node)
+                    except:
+                        print('No hay nodos')
 
 
 
