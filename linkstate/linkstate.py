@@ -53,7 +53,7 @@ class Linkstate(slixmpp.ClientXMPP):
         with open('users.txt') as f:
             self.json_data = json.load(f)
         #print(self.json_data['config'])
-        self.grafo = nx.DiGraph() #Se crea un grafo dirigido
+        self.grafo = nx.Graph() #Se crea un grafo dirigido
         archivo=open("test.txt", "r")
         for i in archivo:
             particion= i.split(" ")
@@ -103,8 +103,22 @@ class Linkstate(slixmpp.ClientXMPP):
         msg['distance'] = 0
         msg['nodes'] = []
         msg['message'] = message
-
+        route_table = {}
         try:
+            sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+            for i in self.grafo.nodes():
+                if sender_graph == i:
+                    route_table[sender_graph] = {}
+                    for j in self.grafo.nodes():
+                        path_node = []
+                        if sender_graph != j: #No soy el nodo origen
+                            path_node  = nx.dijkstra_path(self.grafo, i, j)
+                            route_table[sender_graph].update({j:nx.path_weight(self.grafo, path_node,weight='weight')})
+
+
+
+            print('route table', route_table)
+
             sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
             receiver_graph =  list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(user)]
             path = nx.dijkstra_path(self.grafo, sender_graph, receiver_graph)
@@ -113,7 +127,6 @@ class Linkstate(slixmpp.ClientXMPP):
             for i in range(len(path)):
                 if self.jid == self.json_data['config'][path[i]]:
                     node = path[i+1]
-            print("Nodo destino: ", node)
             msg['hops'] = msg['hops'] + 1
             msg['nodes'].append(node)
             msg['distance'] = msg['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
@@ -130,10 +143,31 @@ class Linkstate(slixmpp.ClientXMPP):
 
         if msg['type'] in ('chat', 'normal'):
             print(msg['body'])
+
             try:
                 msg_f = eval(msg['body'])
+
                 if self.jid != msg_f['destination']:
                     print("El mensaje no es para este usuario")
+                    route_table = {}
+                    sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+                    for i in self.grafo.nodes():
+                        if sender_graph == i:
+
+                            route_table[sender_graph] = {}
+                            for j in self.grafo.nodes():
+                                path_node = []
+
+                                if sender_graph != j: #No soy el nodo origen
+                                    path_node  = nx.dijkstra_path(self.grafo, i, j)
+
+                                    route_table[sender_graph].update({j:nx.path_weight(self.grafo, path_node,weight='weight')})
+
+
+
+                    print('route table', route_table)
+
+
                     sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
                     receiver_graph =  list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['destination'])]
                     path = nx.dijkstra_path(self.grafo, sender_graph, receiver_graph)
@@ -150,9 +184,27 @@ class Linkstate(slixmpp.ClientXMPP):
 
                     self.send_message(mto=receiver, mbody=str(msg_f))
                 else:
+
                     print("El mensaje es para este usuario")
+                    route_table = {}
+                    sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+                    for i in self.grafo.nodes():
+                        if sender_graph == i:
+
+                            route_table[sender_graph] = {}
+                            for j in self.grafo.nodes():
+                                path_node = []
+                                if sender_graph != j: #No soy el nodo origen
+                                    path_node  = nx.dijkstra_path(self.grafo, i, j)
+
+                                    route_table[sender_graph].update({j:nx.path_weight(self.grafo, path_node,weight='weight')})
+
+
+
+                    print('route table', route_table)
             except:
                 print("Error")
+
 
 
 '''
