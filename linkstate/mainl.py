@@ -12,7 +12,7 @@ from multiprocessing import forkserver
 import sys
 from getpass import getpass
 from argparse import ArgumentParser
-from flooding import Flooding, RegisterChat
+from linkstate import Linkstate, RegisterChat
 
 import asyncio
 if sys.platform == 'win32':
@@ -20,7 +20,7 @@ if sys.platform == 'win32':
 
 if __name__ == '__main__':
 
-    parser = ArgumentParser(description=Flooding.__doc__)
+    parser = ArgumentParser(description=Linkstate.__doc__)
 
     parser.add_argument("-q", "--quiet", help="set logging to ERROR",
                         action="store_const", dest="loglevel",
@@ -54,7 +54,7 @@ if __name__ == '__main__':
             user = user + "@alumchat.fun"
             password = getpass("Ingresa tu password: ")
 
-            xmpp = Flooding(user, password)
+            xmpp = Linkstate(user, password)
             xmpp.connect(disable_starttls=True)
             xmpp.process(forever=False)
             flag = False

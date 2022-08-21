@@ -7,6 +7,11 @@ Julio Herrera 19402
 Lab3 - Algoritmos de enrutamiento
 '''
 
+
+#https://networkx.github.io/documentation/latest/_downloads/networkx_reference.pdf
+#https://www.pythonista.io/cursos/py101/escritura-y-lectura-de-archivos
+#https://www.geeksforgeeks.org/connectivity-in-a-directed-graph/
+from importlib.resources import path
 import logging
 import sys
 from getpass import getpass
@@ -15,6 +20,7 @@ from aioconsole import ainput
 import json
 import slixmpp
 from slixmpp import Iq
+import networkx as nx
 
 async def menu_options():
     print("\nChoose an option:")
@@ -25,7 +31,7 @@ async def menu_options():
     return option
 
 
-class Flooding(slixmpp.ClientXMPP):
+class Linkstate(slixmpp.ClientXMPP):
 
     def __init__(self, jid, password):
         slixmpp.ClientXMPP.__init__(self, jid, password)
@@ -47,10 +53,19 @@ class Flooding(slixmpp.ClientXMPP):
         with open('users.txt') as f:
             self.json_data = json.load(f)
         #print(self.json_data['config'])
+        self.grafo = nx.DiGraph() #Se crea un grafo dirigido
+        archivo=open("test.txt", "r")
+        for i in archivo:
+            particion= i.split(" ")
+            primerNodo = particion[0]
+            segundoNodo = particion[1]
+            pesoArista = float(particion [2])
 
-        with open('test.txt') as f:
-            self.topology = json.load(f)
-        #print(self.topology['config'])
+            #add_edge(dato1, dato2, weight)
+            self.grafo.add_edge(primerNodo,segundoNodo,weight=pesoArista)
+
+        archivo.close()
+        print(self.grafo.get_edge_data('A','B'))
 
 
         option_cycle = True
@@ -58,7 +73,7 @@ class Flooding(slixmpp.ClientXMPP):
             await self.get_roster()
             option = await menu_options()
             if option == '1':
-                await self.flood_send()
+                await self.link_send()
             elif option == '2':
                 await self.receive_message()
             elif option == '3':
@@ -68,8 +83,8 @@ class Flooding(slixmpp.ClientXMPP):
                 print("Invalid option")
 
 
-    #When user sends flood message
-    async def flood_send(self):
+    #When user sends link message
+    async def link_send(self):
         print("Ingrese el usuario al que desea enviar el mensaje (sin @alumchat.fun): ")
         user = await ainput("Usuario: ")
         user = user + "@alumchat.fun"
@@ -88,23 +103,23 @@ class Flooding(slixmpp.ClientXMPP):
         msg['distance'] = 0
         msg['nodes'] = []
         msg['message'] = message
-        #print('message', msg)
 
         try:
-            print('Getting key: ',list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)])
-            node = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
-            receivers_node= self.topology['config'][node]
-            print('receivers: ',receivers_node)
+            sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+            receiver_graph =  list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(user)]
+            path = nx.dijkstra_path(self.grafo, sender_graph, receiver_graph)
+            print("Ruta ", path)
+
+            for i in range(len(path)):
+                if self.jid == self.json_data['config'][path[i]]:
+                    node = path[i+1]
+            print("Nodo destino: ", node)
             msg['hops'] = msg['hops'] + 1
             msg['nodes'].append(node)
-            msg['distance'] = msg['distance'] + 1
-            msg['id'] = id(node)
-            self.flag = True
-            self.nodes_visited.append(node)
-            for receiver in receivers_node:
-                receiver = self.json_data['config'][receiver]
+            msg['distance'] = msg['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
+            receiver = self.json_data['config'][node]
 
-                self.send_message(mto=receiver, mbody=str(msg))
+            self.send_message(mto=receiver, mbody=str(msg))
         except:
             print('No hay nodos')
 
@@ -114,59 +129,30 @@ class Flooding(slixmpp.ClientXMPP):
 
 
         if msg['type'] in ('chat', 'normal'):
-            msg_f = eval(msg['body'])
-            node = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['source'])]
-            #print("VINEE")
-            #print("vine nodos pasados", msg_f['nodes'])
-            #print("nodes visited", self.nodes_visited)
-            if self.flag == False:
-                self.nodes_visited.append(node)
-                self.flag = True
-            else:
+            print(msg['body'])
+            try:
+                msg_f = eval(msg['body'])
+                if self.jid != msg_f['destination']:
+                    print("El mensaje no es para este usuario")
+                    sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+                    receiver_graph =  list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['destination'])]
+                    path = nx.dijkstra_path(self.grafo, sender_graph, receiver_graph)
+                    print("Ruta ", path)
 
-                #print('nodes visiteeeeeed', self.nodes_visited)
-                for node in msg_f['nodes']:
+                    for i in range(len(path)):
+                        if self.jid == self.json_data['config'][path[i]]:
+                            node = path[i+1]
+                    print("Nodo destino: ", node)
+                    msg_f['hops'] = msg_f['hops'] + 1
+                    msg_f['nodes'].append(node)
+                    msg_f['distance'] = msg_f['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
+                    receiver = self.json_data['config'][node]
 
-                    if node in self.nodes_visited:
-                        #print("im here")
-                        self.run = True
-
-            if self.run == False:
-
-                if msg_f['destination'] == self.jid:
-                    print("LLEGUE A MI DESTINO")
-                    print("\nMensaje recibido de: ", msg_f['source'])
-                    print("Mensaje: ", msg_f['message'])
-                    print("Saltos: ", msg_f['hops'])
-                    print("Distancia: ", msg_f['distance'])
-                    print("Nodos: ", msg_f['nodes'])
-                    print("\n")
+                    self.send_message(mto=receiver, mbody=str(msg_f))
                 else:
-                    print("\nMensaje recibido de: ", msg_f['source'])
-                    print("Mensaje: ", msg_f['message'])
-                    print("Saltos: ", msg_f['hops'])
-                    print("Distancia: ", msg_f['distance'])
-                    print("Nodos: ", msg_f['nodes'])
-                    print("\n")
-                    print('Getting key: ',list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)])
-                    node = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
-                    try: #cuando ya no hay mas nodos a quien enviar desde un nodo
-                        receivers_node= self.topology['config'][node]
-                        print('receivers in message: ',receivers_node)
-                        msg_f['hops'] = msg_f['hops'] + 1
-                        msg_f['nodes'].append(node)
-                        msg_f['distance'] = msg_f['distance'] + 1
-                        for receiver in receivers_node:
-                            receiver = self.json_data['config'][receiver]
-                            self.send_message(mto=receiver, mbody=str(msg_f))
-                        self.nodes_visited.append(node)
-                    except:
-                        print('No hay nodos')
-
-
-
-
-
+                    print("El mensaje es para este usuario")
+            except:
+                print("Error")
 
 
 '''
