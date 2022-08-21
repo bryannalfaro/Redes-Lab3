@@ -65,7 +65,7 @@ class Linkstate(slixmpp.ClientXMPP):
             self.grafo.add_edge(primerNodo,segundoNodo,weight=pesoArista)
 
         archivo.close()
-        print(self.grafo.get_edge_data('A','B'))
+
 
 
         option_cycle = True
@@ -142,10 +142,15 @@ class Linkstate(slixmpp.ClientXMPP):
 
 
         if msg['type'] in ('chat', 'normal'):
-            print(msg['body'])
 
             try:
                 msg_f = eval(msg['body'])
+                print("Fuente: ", msg_f['source'])
+                print("Destino: ", msg_f['destination'])
+                print("Saltos: ", msg_f['hops'])
+                print("Distancia: ", msg_f['distance'])
+                print("Nodos: ", msg_f['nodes'])
+                print("Mensaje: ", msg_f['message'])
 
                 if self.jid != msg_f['destination']:
                     print("El mensaje no es para este usuario")
@@ -186,6 +191,12 @@ class Linkstate(slixmpp.ClientXMPP):
                 else:
 
                     print("El mensaje es para este usuario")
+                    print("Fuente: ", msg_f['source'])
+                    print("Destino: ", msg_f['destination'])
+                    print("Saltos: ", msg_f['hops'])
+                    print("Distancia: ", msg_f['distance'])
+                    print("Nodos: ", msg_f['nodes'])
+                    print("Mensaje: ", msg_f['message'])
                     route_table = {}
                     sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
                     for i in self.grafo.nodes():
