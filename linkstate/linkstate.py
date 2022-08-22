@@ -25,8 +25,7 @@ import networkx as nx
 async def menu_options():
     print("\nChoose an option:")
     print("1 - Mandar un mensaje")
-    print("2 - Escuchar mensajes")
-    print("3 - Salir")
+    print("2 - Salir")
     option = await ainput("Option: ")
     return option
 
@@ -75,8 +74,6 @@ class Linkstate(slixmpp.ClientXMPP):
             if option == '1':
                 await self.link_send()
             elif option == '2':
-                await self.receive_message()
-            elif option == '3':
                 option_cycle = False
                 self.disconnect()
             else:
@@ -126,9 +123,10 @@ class Linkstate(slixmpp.ClientXMPP):
 
             for i in range(len(path)):
                 if self.jid == self.json_data['config'][path[i]]:
+                    msg['nodes'].append(path[i])
                     node = path[i+1]
             msg['hops'] = msg['hops'] + 1
-            msg['nodes'].append(node)
+
             msg['distance'] = msg['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
             receiver = self.json_data['config'][node]
 
@@ -145,15 +143,17 @@ class Linkstate(slixmpp.ClientXMPP):
 
             try:
                 msg_f = eval(msg['body'])
-                print("Fuente: ", msg_f['source'])
-                print("Destino: ", msg_f['destination'])
-                print("Saltos: ", msg_f['hops'])
-                print("Distancia: ", msg_f['distance'])
-                print("Nodos: ", msg_f['nodes'])
-                print("Mensaje: ", msg_f['message'])
+
 
                 if self.jid != msg_f['destination']:
+
                     print("El mensaje no es para este usuario")
+                    print("Fuente: ", msg_f['source'])
+                    print("Destino: ", msg_f['destination'])
+                    print("Saltos: ", msg_f['hops'])
+                    print("Distancia: ", msg_f['distance'])
+                    print("Nodos: ", msg_f['nodes'])
+                    print("Mensaje: ", msg_f['message'])
                     route_table = {}
                     sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
                     for i in self.grafo.nodes():
@@ -180,10 +180,11 @@ class Linkstate(slixmpp.ClientXMPP):
 
                     for i in range(len(path)):
                         if self.jid == self.json_data['config'][path[i]]:
+                            msg_f['nodes'].append(path[i])
                             node = path[i+1]
                     print("Nodo destino: ", node)
                     msg_f['hops'] = msg_f['hops'] + 1
-                    msg_f['nodes'].append(node)
+
                     msg_f['distance'] = msg_f['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
                     receiver = self.json_data['config'][node]
 
