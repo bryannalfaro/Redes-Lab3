@@ -12,7 +12,7 @@ from multiprocessing import forkserver
 import sys
 from getpass import getpass
 from argparse import ArgumentParser
-from linkstate import Linkstate, RegisterChat
+from linkstateFinal import Linkstate, RegisterChat
 
 import asyncio
 if sys.platform == 'win32':
