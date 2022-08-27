@@ -34,10 +34,12 @@ class Flooding(slixmpp.ClientXMPP):
         self.register_plugin('xep_0004') # Data Forms
         self.register_plugin('xep_0060') # PubSub
         self.register_plugin('xep_0199') # XMPP Ping
+
         self.jid = jid
         self.flag = False
         self.run = False
         self.nodes_visited = []
+
     async def start(self, event):
 
         self.send_presence()
@@ -45,12 +47,9 @@ class Flooding(slixmpp.ClientXMPP):
 
         with open('users.txt') as f:
             self.json_data = json.load(f)
-        #print(self.json_data['config'])
 
         with open('test.txt') as f:
             self.topology = json.load(f)
-        #print(self.topology['config'])
-
 
         option_cycle = True
         while option_cycle:
@@ -85,7 +84,6 @@ class Flooding(slixmpp.ClientXMPP):
         msg['distance'] = 0
         msg['nodes'] = []
         msg['message'] = message
-        #print('message', msg)
 
         try:
             print('Getting key: ',list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)])
@@ -113,19 +111,13 @@ class Flooding(slixmpp.ClientXMPP):
         if msg['type'] in ('chat', 'normal'):
             msg_f = eval(msg['body'])
             node = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['source'])]
-            #print("VINEE")
-            #print("vine nodos pasados", msg_f['nodes'])
-            #print("nodes visited", self.nodes_visited)
+
             if self.flag == False:
                 self.nodes_visited.append(node)
                 self.flag = True
             else:
-
-                #print('nodes visiteeeeeed', self.nodes_visited)
                 for node in msg_f['nodes']:
-
                     if node in self.nodes_visited:
-                        #print("im here")
                         self.run = True
 
             if self.run == False:
@@ -161,12 +153,6 @@ class Flooding(slixmpp.ClientXMPP):
                         self.nodes_visited.append(node)
                     except:
                         print('No hay nodos')
-
-
-
-
-
-
 
 '''
 Class to manage the registration of a user
