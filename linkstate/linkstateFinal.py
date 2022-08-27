@@ -106,6 +106,7 @@ class Linkstate(slixmpp.ClientXMPP):
         route_table = {}
         try:
             sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+            receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(user)]
             dist, result = self.dijkstra(self.grafo, sender_graph)
 
             for node in list(self.grafo.nodes()):
@@ -116,10 +117,7 @@ class Linkstate(slixmpp.ClientXMPP):
                     if i[0] == node and i[0]==sender_graph: #Si el nodo es el destino, problema con loops
                         list_path.append(node)
                         break
-
-
                     else:
-
                         flag = True
                         aux= node
                         #print(aux)
@@ -144,6 +142,20 @@ class Linkstate(slixmpp.ClientXMPP):
             print("\nTabla de rutas:")
             for i in route_table:
                 print(i, ":", route_table[i])
+            path = route_table[receiver_graph][0]
+            path.reverse()
+            print("\nRuta: ", path)
+            for i in range(len(path)):
+                if self.jid == self.json_data['config'][path[i]]:
+                    print("Entre")
+                    msg['nodes'].append(path[i])
+                    node = path[i+1]
+            print("\nNodo: ", node)
+            msg['hops'] = msg['hops'] + 1
+
+            msg['distance'] = msg['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
+            receiver = self.json_data['config'][node]
+            self.send_message(mto=receiver, mbody=str(msg))
 
                                             #print('found {} in tuple {} at index {}'.format(node, i, a.index(node)))
                                             #flag = False
@@ -159,13 +171,10 @@ class Linkstate(slixmpp.ClientXMPP):
     #When user receives message
     def message(self, msg):
 
-
         if msg['type'] in ('chat', 'normal'):
-
             try:
                 msg_f = eval(msg['body'])
-
-
+                print(msg_f)
                 if self.jid != msg_f['destination']:
 
                     print("El mensaje no es para este usuario")
@@ -175,7 +184,56 @@ class Linkstate(slixmpp.ClientXMPP):
                     print("Distancia: ", msg_f['distance'])
                     print("Nodos: ", msg_f['nodes'])
                     print("Mensaje: ", msg_f['message'])
+                    sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+                    dist, result = self.dijkstra(self.grafo, sender_graph)
+                    receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['destination'])]
+                    route_table = {}
+                    for node in list(self.grafo.nodes()):
+                        list_path = []
+                        #print("Destino: ", node)
+                        for i in result:
+                            #print(i, node)
+                            if i[0] == node and i[0]==sender_graph: #Si el nodo es el destino, problema con loops
+                                list_path.append(node)
+                                break
+                            else:
+                                flag = True
+                                aux= node
+                                #print(aux)
+                                while flag:
+                                    for i, a in enumerate(result):
+                                        #print('here')
+                                        if sender_graph and aux in list_path:
+                                            flag = False
+                                            break
+                                        #print(list_path)
+                                        if aux in a and a.index(aux) == 1:
+                                                if a[0] != sender_graph:
+                                                    list_path.append(aux)
+                                                    aux = a[0]
+                                                else:
+                                                    list_path.append(aux)
+                                                    list_path.append(sender_graph)
+                                                    flag = False
+                                                    break
+                        route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
 
+                    print("\nTabla de rutas:")
+                    for i in route_table:
+                        print(i, ":", route_table[i])
+                    path = route_table[receiver_graph][0]
+                    path.reverse()
+                    print("\nRuta: ", path)
+                    for i in range(len(path)):
+                        if self.jid == self.json_data['config'][path[i]]:
+                            print('Entre')
+                            msg_f['nodes'].append(path[i])
+
+                            node = path[i+1]
+                    msg_f['hops'] = msg_f['hops'] + 1
+                    print(node)
+                    msg_f['distance'] = msg_f['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
+                    receiver = self.json_data['config'][node]
 
                     self.send_message(mto=receiver, mbody=str(msg_f))
                 else:
