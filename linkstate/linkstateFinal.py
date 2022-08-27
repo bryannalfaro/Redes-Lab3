@@ -52,7 +52,7 @@ class Linkstate(slixmpp.ClientXMPP):
 
         with open('users.txt') as f:
             self.json_data = json.load(f)
-        #print(self.json_data['config'])
+
         self.grafo = nx.Graph() #Se crea un grafo dirigido
         archivo=open("test.txt", "r")
         for i in archivo:
@@ -60,15 +60,9 @@ class Linkstate(slixmpp.ClientXMPP):
             primerNodo = particion[0]
             segundoNodo = particion[1]
             pesoArista = float(particion [2])
-
-            #add_edge(dato1, dato2, weight)
             self.grafo.add_edge(primerNodo,segundoNodo,weight=pesoArista)
 
-        print(self.grafo.get_edge_data(primerNodo,segundoNodo))
-
         archivo.close()
-
-
 
         option_cycle = True
         while option_cycle:
@@ -105,29 +99,28 @@ class Linkstate(slixmpp.ClientXMPP):
         msg['message'] = message
         route_table = {}
         try:
+            #Obtener el nodo que envia y el que recibe
             sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
             receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(user)]
+
+            #Se calcula la ruta desde el origen hacia los demas
             dist, result = self.dijkstra(self.grafo, sender_graph)
 
+            #Se calcula la tabla de ruteo
             for node in list(self.grafo.nodes()):
                 list_path = []
-                #print("Destino: ", node)
                 for i in result:
-                    #print(i, node)
                     if i[0] == node and i[0]==sender_graph: #Si el nodo es el destino, problema con loops
                         list_path.append(node)
                         break
                     else:
                         flag = True
                         aux= node
-                        #print(aux)
                         while flag:
                             for i, a in enumerate(result):
-                                #print('here')
                                 if sender_graph and aux in list_path:
                                     flag = False
                                     break
-                                #print(list_path)
                                 if aux in a and a.index(aux) == 1:
                                         if a[0] != sender_graph:
                                             list_path.append(aux)
@@ -142,27 +135,24 @@ class Linkstate(slixmpp.ClientXMPP):
             print("\nTabla de rutas:")
             for i in route_table:
                 print(i, ":", route_table[i])
+
+            #Se obtiene el path hacia el destino basado en la tabla de ruteo
             path = route_table[receiver_graph][0]
             path.reverse()
             print("\nRuta: ", path)
+
+
             for i in range(len(path)):
                 if self.jid == self.json_data['config'][path[i]]:
-                    print("Entre")
                     msg['nodes'].append(path[i])
                     node = path[i+1]
-            print("\nNodo: ", node)
+
             msg['hops'] = msg['hops'] + 1
 
             msg['distance'] = msg['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
             receiver = self.json_data['config'][node]
             self.send_message(mto=receiver, mbody=str(msg))
 
-                                            #print('found {} in tuple {} at index {}'.format(node, i, a.index(node)))
-                                            #flag = False
-
-
-
-            #self.send_message(mto=receiver, mbody=str(msg))
         except Exception as e:
             print("Error: ", e)
             print('No hay nodos')
@@ -174,7 +164,8 @@ class Linkstate(slixmpp.ClientXMPP):
         if msg['type'] in ('chat', 'normal'):
             try:
                 msg_f = eval(msg['body'])
-                print(msg_f)
+
+                #Si no es el usuario destino
                 if self.jid != msg_f['destination']:
 
                     print("El mensaje no es para este usuario")
@@ -184,29 +175,31 @@ class Linkstate(slixmpp.ClientXMPP):
                     print("Distancia: ", msg_f['distance'])
                     print("Nodos: ", msg_f['nodes'])
                     print("Mensaje: ", msg_f['message'])
+
+                    #Obtener el nodo del usuario que recibio el mensaje
                     sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+
+                    #Obtener todos los pesos a partir del usuario
                     dist, result = self.dijkstra(self.grafo, sender_graph)
                     receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['destination'])]
                     route_table = {}
+
+                    #Se calcula la tabla de ruteo
                     for node in list(self.grafo.nodes()):
                         list_path = []
-                        #print("Destino: ", node)
+
                         for i in result:
-                            #print(i, node)
                             if i[0] == node and i[0]==sender_graph: #Si el nodo es el destino, problema con loops
                                 list_path.append(node)
                                 break
                             else:
                                 flag = True
                                 aux= node
-                                #print(aux)
                                 while flag:
                                     for i, a in enumerate(result):
-                                        #print('here')
                                         if sender_graph and aux in list_path:
                                             flag = False
                                             break
-                                        #print(list_path)
                                         if aux in a and a.index(aux) == 1:
                                                 if a[0] != sender_graph:
                                                     list_path.append(aux)
@@ -221,22 +214,29 @@ class Linkstate(slixmpp.ClientXMPP):
                     print("\nTabla de rutas:")
                     for i in route_table:
                         print(i, ":", route_table[i])
+
+                    #Se obtiene el path hacia el destino basado en la tabla de ruteo
                     path = route_table[receiver_graph][0]
                     path.reverse()
                     print("\nRuta: ", path)
+
                     for i in range(len(path)):
                         if self.jid == self.json_data['config'][path[i]]:
-                            print('Entre')
                             msg_f['nodes'].append(path[i])
-
                             node = path[i+1]
+
                     msg_f['hops'] = msg_f['hops'] + 1
-                    print(node)
                     msg_f['distance'] = msg_f['distance'] + self.grafo.get_edge_data(sender_graph, node)['weight']
                     receiver = self.json_data['config'][node]
 
                     self.send_message(mto=receiver, mbody=str(msg_f))
+
+                #Es el usuario destino
                 else:
+                    #Se obtiene el nodo del usuario que recibio el mensaje y se agrega al final de la ruta del mensaje
+                    destino = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+                    msg_f['nodes'].append(destino)
+
 
                     print("El mensaje es para este usuario")
                     print("Fuente: ", msg_f['source'])
@@ -246,67 +246,88 @@ class Linkstate(slixmpp.ClientXMPP):
                     print("Nodos: ", msg_f['nodes'])
                     print("Mensaje: ", msg_f['message'])
 
+                    #Se obtiene el nodo del usuario para dijkstra
+                    sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+
+                    #Se obtiene todos los pesos a partir del usuario
+                    dist, result = self.dijkstra(self.grafo, sender_graph)
+                    receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['destination'])]
+                    route_table = {}
+
+                    #Se calcula la tabla de ruteo
+                    for node in list(self.grafo.nodes()):
+                        list_path = []
+                        for i in result:
+                            if i[0] == node and i[0]==sender_graph: #Si el nodo es el destino, problema con loops
+                                list_path.append(node)
+                                break
+                            else:
+                                flag = True
+                                aux= node
+                                while flag:
+                                    for i, a in enumerate(result):
+                                        if sender_graph and aux in list_path:
+                                            flag = False
+                                            break
+                                        if aux in a and a.index(aux) == 1:
+                                                if a[0] != sender_graph:
+                                                    list_path.append(aux)
+                                                    aux = a[0]
+                                                else:
+                                                    list_path.append(aux)
+                                                    list_path.append(sender_graph)
+                                                    flag = False
+                                                    break
+                        route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
+
+                    print("\nTabla de rutas:")
+                    for i in route_table:
+                        print(i, ":", route_table[i])
             except:
                 print("Error")
-#
+
 #https://www.geeksforgeeks.org/python-program-for-dijkstras-shortest-path-algorithm-greedy-algo-7/
-    def minDistance(self, dist, sptSet):
+    def minDistance(self, distance, set_path):
 
-        min = 1e7
+        min_val = 1e7
         for v in range(len(self.grafo.nodes())):
-            if dist[v] < min and sptSet[v] == False:
-                min = dist[v]
-                min_index = v
-
-        return min_index
+            if distance[v] < min_val and set_path[v] == False:
+                min_val = distance[v]
+                index = v
+        return index
 
     def dijkstra(self, graph, source):
         list_nodes = []
-        dist = [1e7] * len(graph.nodes())
+        dist = [1e7] * len(graph.nodes()) #Distancias
         source = list(graph.nodes()).index(source)
-        dist[source] = 0
-        sptSet = [False] * len(graph.nodes())
-        #print('here')
-        for cout in range(len(graph.nodes())):
-            u = self.minDistance(dist, sptSet)
-            #print("Im here  " + str(u))
-            sptSet[u] = True
-            #print("Value of u: " + str(u))
+        dist[source] = 0 #Setear la distancia en el origen
+        path_set = [False] * len(graph.nodes()) #Nodos visitados
+
+        for i in range(len(graph.nodes())):
+            u = self.minDistance(dist, path_set)
+            path_set[u] = True
+
             for v in range(len(graph.nodes())):
                 un= list(graph.nodes())[u]
                 vn = list(graph.nodes())[v]
                 if un == vn:
-                    #print('U igual a V ' + str(un)+ str(vn))
                     continue
                 else:
-                    #print('nodes',graph.nodes())
-                    #print("U y V", un, vn)
-
-                    #print("Path set: ",sptSet)
-                    #print("Distance: " ,dist)
                     valor = 0
                     try: #Si tiene conexion directa
                         valor = graph.get_edge_data(un,vn)["weight"]
                     except :
                         valor = 1e7
 
-                    #print('U , V y valor', un, vn, valor)
                     if (valor > 0 and
-                    sptSet[v] == False and
+                    path_set[v] == False and
                     dist[v] > dist[u] + valor):
-                        #print('entre')
-
-
                         for i in list_nodes:
                             if i[1] == vn:
                                 list_nodes.remove(i)
                         list_nodes.append((un,vn,dist[u]+valor))
 
                         dist[v] = dist[u] + valor
-
-        #for node in graph.nodes():
-        #    print("%s \t\t %d" % (node, dist[list(graph.nodes()).index(node)]))
-        #print(list_nodes)
         return dist,list_nodes
 
 '''

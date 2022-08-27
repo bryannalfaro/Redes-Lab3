@@ -1,6 +1,0 @@
-'''else:
-                        if i[1] == node and i[0]== sender_graph: #directa
-                            print("entre",i[1])
-                            list_path.append(i[1])
-                            list_path.append(i[0])
-                            break'''
