@@ -2,18 +2,19 @@ from sleekxmpp import ClientXMPP
 from sleekxmpp.xmlstream.stanzabase import ET
 from sleekxmpp.exceptions import IqTimeout, IqError
 from sleekxmpp.plugins.xep_0004.stanza.form import Form
+from node import Node
+from ast import literal_eval
+import json
 
 SERVER = '@alumchat.fun'
 PORT = 5222
 
-class Client(ClientXMPP):
-    def __init__(self, jid, password, Name=None, Email=None, registering=False):
-        ClientXMPP.__init__(self, jid, password)
-        self.password = password
-        self.Name = Name
-        self.Email = Email
-        self.registering = registering # True if client was created for registration, False if client was created for login
-        self.contacts = []
+class Client(ClientXMPP, Node):
+    def __init__(self, node):
+        ClientXMPP.__init__(self, node.username + SERVER, node.password)
+        Node.__init__(self, node.username, node.password, node.name, node.email, node.neighbors)
+        self.registering = False # True if client was created for registration, False if client was created for login
+        self.contacts = [] # solo nombres de neighbors
         self.connected = False
         self.add_event_handler('session_start', self.on_session_start)
         self.add_event_handler("register", self.on_register)
@@ -33,35 +34,78 @@ class Client(ClientXMPP):
 
     def on_session_start(self, event):
         self.set_status('chat', 'available')
-        self.update_roster(firts_time=True)
         self.connected = True
 
-    def on_message(self, msg):
-        print(msg)
-
     # Get the roster (contacts list) and updates the contacts list
-    def update_roster(self, firts_time=False):
+    def update_roster(self):
         try:
             roster = self.get_roster()
-            contacts_roster = []
             for jid in roster['roster']['items'].keys():
                 contact = jid
                 for k, v in roster['roster']['items'][jid].items():
                     print(k, v)
-                contacts_roster.append(contact)
-            if firts_time:
-                self.contacts = contacts_roster
-            else:
-                self.update_contacts(contacts_roster)
+                self.contacts.append(contact)
         except IqError as e:
             print(e.iq)
         except IqTimeout:
             print('Tiempo de espera agotado')
+        if len(self.contacts) == 0:
+            for neighbor in self.table:
+                self.contacts.append(neighbor.username)
+
+    def on_message(self, msg):
+        # if message is error, show error message
+        if msg['type'] == 'error':
+            print(f"\nError en mensaje: {msg['error']['condition']}")
+            return
+        # pass the &apos; character to the string '
+        msg_obj = msg['body'].replace("&apos;", "'")
+        msg_obj = literal_eval(msg_obj)
+        if msg_obj["type"] == "table":
+            new_table = literal_eval(msg_obj["message"])
+            self.update_table_bellman_ford(new_table, msg['from'].bare.split('@')[0])
+        elif msg_obj["type"] == "message":
+            print('mensaje tipo message', msg_obj)
+            # verificar si el mensaje es para mi
+            print(msg_obj["to"])
+            print(self.username)
+            if msg_obj["to"].lower() == self.username.lower():
+                print(f"\n{msg_obj['from']} dice: {msg_obj['message']}")
+                print(f"{msg_obj['hops']} saltos pasando por {msg_obj['distance']} con una distancia de {msg_obj['nodes']}")
+            # verificar si ya se paso por mi nodo (si está más de dos veces)
+            elif msg_obj["nodes"].lower().split(",").count(self.username.lower()) > 1:
+                print("\nEste mensaje ya paso por mi nodo")
+            # si no es para mi, reenviar
+            else:
+                self.send_message_to_user(msg_obj["to"], msg_obj)
+
+    # send table to neigbors
+    def share_table(self):
+        for contact in self.contacts:
+            self.send_message_to_user(contact, self.get_table(), new_message=True, type="table")
 
     # Send message and updates the chat history of the contact
-    def send_message_to_user(self, jid, message):
-        self.send_message(mto=jid+SERVER, mbody=message, mtype='chat')
-        # TODO: tal vez guardar el historial de mensajes
+    def send_message_to_user(self, jid, message, new_message=False, type="message"):
+        hop_node = self.get_node_by_username(self.get_node_by_username(jid).hop)
+        if new_message:
+            packet = {
+                "from": self.username,
+                "to": jid,
+                "type": type,
+                "hops": 1,
+                "distance": hop_node.weight,
+                "nodes": hop_node.username,
+                "message": message
+            }
+            message = json.dumps(packet)
+        else:
+            message["hops"] += 1
+            message["distance"] += hop_node.weight
+            message["nodes"] += "," + hop_node.username
+            message = json.dumps(message)
+            print(f"\nReenviando mensaje de {message['from']} a {jid} por medio de {hop_node.username}")
+            print(f"\n{message['hops']} saltos pasando por {message['distance']} con una distancia de {message['nodes']} (luego de este nodo)")
+        self.send_message(mto=hop_node.username+SERVER, mbody=message, mtype='chat')
 
     # Show notification when someone added you as a contact
     def on_presence_subscribe(self, presence):
@@ -218,8 +262,8 @@ class Client(ClientXMPP):
             iq['type'] = 'set'
             iq['register']['username'] = self.boundjid.user
             iq['register']['password'] = self.password
-            iq['register']['name'] = self.Name
-            iq['register']['email'] = self.Email
+            iq['register']['name'] = self.name
+            iq['register']['email'] = self.email
             try:
                 iq.send(now=True)
             except IqError as e:
