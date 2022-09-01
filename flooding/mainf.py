@@ -8,7 +8,6 @@ Lab3 - Algoritmos de enrutamiento
 '''
 
 import logging
-from multiprocessing import forkserver
 import sys
 from getpass import getpass
 from argparse import ArgumentParser

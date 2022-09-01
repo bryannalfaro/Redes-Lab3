@@ -287,7 +287,7 @@ class Linkstate(slixmpp.ClientXMPP):
                 print("Error")
 
 #https://www.geeksforgeeks.org/python-program-for-dijkstras-shortest-path-algorithm-greedy-algo-7/
-    def minDistance(self, distance, set_path):
+    def calc_min_dist(self, distance, set_path):
 
         min_val = 1e7
         for v in range(len(self.grafo.nodes())):
@@ -304,7 +304,7 @@ class Linkstate(slixmpp.ClientXMPP):
         path_set = [False] * len(graph.nodes()) #Nodos visitados
 
         for i in range(len(graph.nodes())):
-            u = self.minDistance(dist, path_set)
+            u = self.calc_min_dist(dist, path_set)
             path_set[u] = True
 
             for v in range(len(graph.nodes())):
