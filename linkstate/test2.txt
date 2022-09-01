@@ -1,0 +1,16 @@
+Topologia 2
+A B 7
+A I 1
+A C 7
+B F 2
+C D 5
+I D 6
+D F 1
+D E 1
+F H 4
+F G 3
+E G 4
+F L 2
+D J 2
+E K 5
+G K 3
