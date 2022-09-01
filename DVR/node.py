@@ -1,7 +1,7 @@
 import json
 
 class Node():
-    def __init__(self, username, password, name, email, neighbors=[], weight=0, hop=None):
+    def __init__(self, username, password, name, email, neighbors=[], weight=0, hop=None, topology=None):
         self.username = username
         self.password = password
         self.name = name
@@ -9,6 +9,7 @@ class Node():
         self.weight = weight
         self.hop = hop
         self.neighbors = neighbors # no son nodos
+        self.topology = topology
         self.table = []
         for neighbor in self.neighbors:
             node = Node(f'{username[:-1]}{neighbor["id"]}',
@@ -16,7 +17,8 @@ class Node():
                         f'{username[:-1]}{neighbor["id"]}',
                         f'{username[:-1]}{neighbor["id"]}@{email.split("@")[1]}',
                         weight=neighbor["weight"],
-                        hop=f'{username[:-1]}{neighbor["id"]}')
+                        hop=f'{username[:-1]}{neighbor["id"]}',
+                        topology=topology)
             self.table.append(node)
 
     def get_table(self):
@@ -29,6 +31,7 @@ class Node():
         print()
         for neighbor in self.table:
             print(f'{neighbor.username} - Peso acumulado: {neighbor.weight} - Salto Para llegar a él: {neighbor.hop}')
+        return
 
     def update_table_bellman_ford(self, table, hop):
         for neighbor in table:
@@ -39,14 +42,16 @@ class Node():
                             neighbor["name"],
                             neighbor["email"],
                             weight=int(neighbor["weight"]) + self.get_node_by_username(hop).weight,
-                            hop=hop)
-            if new_node.username not in [n.username for n in self.table]:
+                            hop=hop,
+                            topology=self.topology)
+            if new_node.username.lower() not in [n.username.lower() for n in self.table]:
                 self.table.append(new_node)
             else:
                 for node in self.table:
-                    if node.username == new_node.username:
+                    if node.username.lower() == new_node.username.lower():
                         hop_node = self.get_node_by_username(hop)
-                        new_weight = hop_node.weight + new_node.weight
+                        new_weight = int(new_node.weight)
+                        #print(f"para el nodo {node.username.lower()} se quiere reemplazar el peso {node.weight} por {new_weight} por medio de {hop_node.username}")
                         if new_weight < node.weight:
                             node.weight = new_weight
                             node.hop = hop

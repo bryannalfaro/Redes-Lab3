@@ -1,38 +1,70 @@
-[
+{
+  "type": "pesos",
+  "config": [
     {
-        "id": "A",
-        "neighbors": [ { "id": "B", "weight": 7 }, { "id": "C", "weight": 7 }, { "id": "I", "weight": 1 } ]
+      "id": "A",
+      "neighbors": [
+        { "id": "B", "weight": 7 },
+        { "id": "C", "weight": 7 },
+        { "id": "I", "weight": 1 }
+      ]
     },
     {
-        "id": "B",
-        "neighbors":[ { "id": "A", "weight": 7 }, { "id": "F", "weight": 2 } ]
+      "id": "B",
+      "neighbors": [
+        { "id": "A", "weight": 7 },
+        { "id": "F", "weight": 2 }
+      ]
     },
     {
-        "id": "C",
-        "neighbors": [ { "id": "A", "weight": 7 }, { "id": "D", "weight": 5 } ]
+      "id": "C",
+      "neighbors": [
+        { "id": "A", "weight": 7 },
+        { "id": "D", "weight": 5 }
+      ]
     },
     {
-        "id": "D",
-        "neighbors": [ { "id": "C", "weight": 5 }, { "id": "I", "weight": 6 }, { "id": "F", "weight": 1 }, { "id": "E", "weight": 1 } ]
+      "id": "D",
+      "neighbors": [
+        { "id": "C", "weight": 5 },
+        { "id": "I", "weight": 6 },
+        { "id": "F", "weight": 1 },
+        { "id": "E", "weight": 1 }
+      ]
     },
     {
-        "id": "E",
-        "neighbors": [ { "id": "D", "weight": 1 }, { "id": "G", "weight": 4 } ]
+      "id": "E",
+      "neighbors": [
+        { "id": "D", "weight": 1 },
+        { "id": "G", "weight": 4 }
+      ]
     },
     {
-        "id": "F",
-        "neighbors": [ { "id": "B", "weight": 2 }, { "id": "D", "weight": 1 }, { "id": "G", "weight": 3 }, { "id": "H", "weight": 4 } ]
+      "id": "F",
+      "neighbors": [
+        { "id": "B", "weight": 2 },
+        { "id": "D", "weight": 1 },
+        { "id": "G", "weight": 3 },
+        { "id": "H", "weight": 4 }
+      ]
     },
     {
-        "id": "G",
-        "neighbors": [ { "id": "E", "weight": 4 }, { "id": "F", "weight": 3 } ]
+      "id": "G",
+      "neighbors": [
+        { "id": "E", "weight": 4 },
+        { "id": "F", "weight": 3 }
+      ]
     },
     {
-        "id": "H",
-        "neighbors": [ { "id": "F", "weight": 4 } ]
+      "id": "H",
+      "neighbors": [{ "id": "F", "weight": 4 }]
     },
     {
-        "id": "I",
-        "neighbors": [ { "id": "A", "weight": 1 }, { "id": "D", "weight": 6 } ]
+      "id": "I",
+      "neighbors": [
+        { "id": "A", "weight": 1 },
+        { "id": "D", "weight": 6 }
+      ]
     }
-]
+  ]
+}

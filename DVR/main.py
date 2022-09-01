@@ -10,13 +10,28 @@ is_authenticated = False
 
 # Read json
 file = open("topology.json")
-nodes = json.load(file)
+topology = json.load(file)
+
+nodes = []
+# modificando topologia de txt
+if topology["type"] == "topo":
+    for key in topology["config"].keys():
+        neighbors = []
+        for neighbor in topology["config"][key]:
+            neighbors.append({"id": neighbor, "weight": 1})
+        node = {
+            "id": key,
+            "neighbors": neighbors
+        }
+        nodes.append(node)
+else:
+    nodes = topology["config"]
 
 node_id = input("Ingrese el identificador del nodo (ej. A, B, C, etc): ")
 find_node = lambda id: [ i for i in nodes if i["id"] == id ]
 node = find_node(node_id)[0]
 name = BASENAME.replace("%", node["id"])
-node = Node(name, "123", name, f'{name}{SERVER}', node["neighbors"])
+node = Node(name, "123", name, f'{name}{SERVER}', node["neighbors"], topology=topology["type"])
 
 # Logueando / registrando
 node_client = Client(node)
@@ -39,10 +54,10 @@ def share_table_interval(stop):
         if stop():
             break
         node_client.share_table()
-        sleep(5)
+        sleep(10)
 
 print("Nodo conectado")
-node_client.update_roster()
+node_client.set_initial_contacts()
 # share_table on interval using threading
 stop_thread = False
 thread = threading.Thread(target=share_table_interval, args=(lambda: stop_thread,))
@@ -60,7 +75,7 @@ while option != "4":
     print(menu)
     option = input("Ingrese una opcion: ")
     if option == "1":
-        print(node_client.print_table())
+        node_client.print_table()
     elif option == "2":
         print()
         for contact in node_client.contacts:
@@ -76,8 +91,5 @@ while option != "4":
         thread.join()
         print("Saliendo...")
     else:
-        print("Opcion invalida")
-        print("\n")
-        continue
+        print("\nOpcion invalida")
     print("\n")
-    continue
