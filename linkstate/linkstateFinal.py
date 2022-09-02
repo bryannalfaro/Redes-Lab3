@@ -132,7 +132,8 @@ class Linkstate(slixmpp.ClientXMPP):
                                             break
                 route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
 
-            print("\nTabla de rutas:")
+            print("\nConvergencia completada, ya puede enviar el mensaje")
+            print("Tabla de rutas:")
             for i in route_table:
                 print(i, ":", route_table[i])
 

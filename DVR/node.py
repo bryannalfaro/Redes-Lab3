@@ -48,7 +48,7 @@ class Node():
 
     def update_table_bellman_ford(self, table, hop):
         for neighbor in table:
-            if neighbor["username"].lower() == self.username.lower():
+            if neighbor["username"].lower() == self.name.lower():
                 continue
             new_node = Node(neighbor["username"],
                             neighbor["password"],

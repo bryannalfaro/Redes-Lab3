@@ -43,8 +43,11 @@ if option_login == 1:
 elif option_login == 2:
     username = input("Ingrese el username: ")
     password = input("Ingrese el password: ")
-    node = find_node(username)[0]
-    node = Node(str(username), str(password), username, f'{username}{SERVER}', node["neighbors"], topology=topology["type"], option_login=option_login)
+    users_file = open("users.txt")
+    users_dict = json.load(users_file)["config"]
+    node_id = [id for id in users_dict.keys() if users_dict[id] == username+SERVER][0]
+    node = find_node(node_id)[0]
+    node = Node(username, str(password), node_id, f'{username}{SERVER}', node["neighbors"], topology=topology["type"], option_login=option_login)
 
 # Logueando / registrando
 node_client = Client(node)

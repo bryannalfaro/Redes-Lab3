@@ -1,0 +1,17 @@
+{
+    "type":"names", 
+    "config":{
+                "A": "test3@alumchat.fun", 
+                "B": "testcomp@alumchat.fun", 
+                "C": "pacotest@alumchat.fun", 
+                "D": "testflood@alumchat.fun", 
+                "E": "usere@alumchat.fun", 
+                "F": "userf@alumchat.fun", 
+                "G": "userg@alumchat.fun", 
+                "H": "userh@alumchat.fun", 
+                "I": "useri@alumchat.fun", 
+                "J": "userj@alumchat.fun", 
+                "K": "userk@alumchat.fun", 
+                "L": "userl@alumchat.fun"
+    } 
+}
