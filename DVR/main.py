@@ -27,11 +27,24 @@ if topology["type"] == "topo":
 else:
     nodes = topology["config"]
 
-node_id = input("Ingrese el identificador del nodo (ej. A, B, C, etc): ")
+menu_login = """
+1. Login con id de Nodo
+2. Login con username y password
+"""
+print(menu_login)
+option_login = int(input("Seleccione una opción: "))
+node = None
 find_node = lambda id: [ i for i in nodes if i["id"] == id ]
-node = find_node(node_id)[0]
-name = BASENAME.replace("%", node["id"])
-node = Node(name, "123", name, f'{name}{SERVER}', node["neighbors"], topology=topology["type"])
+if option_login == 1:
+    node_id = input("Ingrese el identificador del nodo (ej. A, B, C, etc): ")
+    node = find_node(node_id)[0]
+    name = BASENAME.replace("%", node["id"])
+    node = Node(name, "123", name, f'{name}{SERVER}', node["neighbors"], topology=topology["type"])
+elif option_login == 2:
+    username = input("Ingrese el username: ")
+    password = input("Ingrese el password: ")
+    node = find_node(username)[0]
+    node = Node(str(username), str(password), username, f'{username}{SERVER}', node["neighbors"], topology=topology["type"], option_login=option_login)
 
 # Logueando / registrando
 node_client = Client(node)
@@ -81,9 +94,14 @@ while option != "4":
         for contact in node_client.contacts:
             print(contact)
     elif option == "3":
-        to = input("Ingrese el id del nodo destinatario: ")
-        msg = input("Ingrese el mensaje: ")
-        node_client.send_message_to_user(f'{node_client.username[:-1]}{to}', msg, new_message=True)
+        if option_login == 1:
+            to = input("Ingrese el id del nodo destinatario: ")
+            msg = input("Ingrese el mensaje: ")
+            node_client.send_message_to_user(f'{node_client.username[:-1]}{to}', msg, new_message=True)
+        elif option_login == 2:
+            to = input("Ingrese el username del nodo destinatario: ")
+            msg = input("Ingrese el mensaje: ")
+            node_client.send_message_to_user(to, msg, new_message=True)
     elif option == "4":
         print("Saliendo...")
         stop_thread = True

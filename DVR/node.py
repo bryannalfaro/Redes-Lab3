@@ -1,7 +1,7 @@
 import json
 
 class Node():
-    def __init__(self, username, password, name, email, neighbors=[], weight=0, hop=None, topology=None):
+    def __init__(self, username, password, name, email, neighbors=[], weight=0, hop=None, topology=None, option_login=1):
         self.username = username
         self.password = password
         self.name = name
@@ -10,15 +10,28 @@ class Node():
         self.hop = hop
         self.neighbors = neighbors # no son nodos
         self.topology = topology
+        self.option_login = option_login
         self.table = []
         for neighbor in self.neighbors:
-            node = Node(f'{username[:-1]}{neighbor["id"]}',
-                        password,
-                        f'{username[:-1]}{neighbor["id"]}',
-                        f'{username[:-1]}{neighbor["id"]}@{email.split("@")[1]}',
-                        weight=neighbor["weight"],
-                        hop=f'{username[:-1]}{neighbor["id"]}',
-                        topology=topology)
+            node = None
+            if option_login == 1:
+                node = Node(f'{username[:-1]}{neighbor["id"]}',
+                            "",
+                            f'{username[:-1]}{neighbor["id"]}',
+                            f'{username[:-1]}{neighbor["id"]}@{email.split("@")[1]}',
+                            weight=neighbor["weight"],
+                            hop=f'{username[:-1]}{neighbor["id"]}',
+                            topology=topology,
+                            option_login=option_login)
+            elif option_login == 2:
+                node = Node(neighbor["id"],
+                            "",
+                            neighbor["id"],
+                            f'{neighbor["id"]}@{email.split("@")[1]}',
+                            weight=neighbor["weight"],
+                            hop=neighbor["id"],
+                            topology=topology,
+                            option_login=option_login)
             self.table.append(node)
 
     def get_table(self):

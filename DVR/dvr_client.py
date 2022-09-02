@@ -12,7 +12,7 @@ PORT = 5222
 class Client(ClientXMPP, Node):
     def __init__(self, node):
         ClientXMPP.__init__(self, node.username + SERVER, node.password)
-        Node.__init__(self, node.username, node.password, node.name, node.email, node.neighbors, topology=node.topology)
+        Node.__init__(self, node.username, node.password, node.name, node.email, node.neighbors, topology=node.topology, option_login=node.option_login)
         self.registering = False # True if client was created for registration, False if client was created for login
         self.contacts = [] # solo nombres de neighbors
         self.connected = False
