@@ -25,7 +25,8 @@ import networkx as nx
 async def menu_options():
     print("\nChoose an option:")
     print("1 - Mandar un mensaje")
-    print("2 - Salir")
+    print("2 - Ver tabla")
+    print("3 - Salir")
     option = await ainput("Option: ")
     return option
 
@@ -45,6 +46,8 @@ class Linkstate(slixmpp.ClientXMPP):
         self.run = False
         self.predecesor = {}
         self.nodes_visited = []
+        self.route_table = {}
+
     async def start(self, event):
 
         self.send_presence()
@@ -64,6 +67,43 @@ class Linkstate(slixmpp.ClientXMPP):
 
         archivo.close()
 
+        #Obtener el nodo que envia y el que recibe
+        sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
+
+        #Se calcula la ruta desde el origen hacia los demas
+        dist, result = self.dijkstra(self.grafo, sender_graph)
+
+        #Se calcula la tabla de ruteo
+        for node in list(self.grafo.nodes()):
+            list_path = []
+            for i in result:
+                if i[0] == node and i[0]==sender_graph: #Si el nodo es el destino, problema con loops
+                    list_path.append(node)
+                    break
+                else:
+                    flag = True
+                    aux= node
+                    while flag:
+                        for i, a in enumerate(result):
+                            if sender_graph and aux in list_path:
+                                flag = False
+                                break
+                            if aux in a and a.index(aux) == 1:
+                                    if a[0] != sender_graph:
+                                        list_path.append(aux)
+                                        aux = a[0]
+                                    else:
+                                        list_path.append(aux)
+                                        list_path.append(sender_graph)
+                                        flag = False
+                                        break
+            self.route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
+
+        print("\nConvergencia completada, ya puede enviar el mensaje")
+        print("Tabla de rutas:")
+        for i in self.route_table:
+            print(i, ":", self.route_table[i])
+
         option_cycle = True
         while option_cycle:
             await self.get_roster()
@@ -71,6 +111,14 @@ class Linkstate(slixmpp.ClientXMPP):
             if option == '1':
                 await self.link_send()
             elif option == '2':
+                if self.route_table == {}:
+                    print("\nNo hay tabla de enrutamiento")
+                else:
+                    print("\nConvergencia completada, ya puede enviar el mensaje")
+                    print("Tabla de rutas:")
+                    for i in self.route_table:
+                        print(i, ":", self.route_table[i])
+            elif option == '3':
                 option_cycle = False
                 self.disconnect()
             else:
@@ -97,48 +145,13 @@ class Linkstate(slixmpp.ClientXMPP):
         msg['distance'] = 0
         msg['nodes'] = []
         msg['message'] = message
-        route_table = {}
         try:
             #Obtener el nodo que envia y el que recibe
             sender_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(self.jid)]
             receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(user)]
 
-            #Se calcula la ruta desde el origen hacia los demas
-            dist, result = self.dijkstra(self.grafo, sender_graph)
-
-            #Se calcula la tabla de ruteo
-            for node in list(self.grafo.nodes()):
-                list_path = []
-                for i in result:
-                    if i[0] == node and i[0]==sender_graph: #Si el nodo es el destino, problema con loops
-                        list_path.append(node)
-                        break
-                    else:
-                        flag = True
-                        aux= node
-                        while flag:
-                            for i, a in enumerate(result):
-                                if sender_graph and aux in list_path:
-                                    flag = False
-                                    break
-                                if aux in a and a.index(aux) == 1:
-                                        if a[0] != sender_graph:
-                                            list_path.append(aux)
-                                            aux = a[0]
-                                        else:
-                                            list_path.append(aux)
-                                            list_path.append(sender_graph)
-                                            flag = False
-                                            break
-                route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
-
-            print("\nConvergencia completada, ya puede enviar el mensaje")
-            print("Tabla de rutas:")
-            for i in route_table:
-                print(i, ":", route_table[i])
-
             #Se obtiene el path hacia el destino basado en la tabla de ruteo
-            path = route_table[receiver_graph][0]
+            path = self.route_table[receiver_graph][0]
             path.reverse()
             print("\nRuta: ", path)
 
@@ -183,7 +196,7 @@ class Linkstate(slixmpp.ClientXMPP):
                     #Obtener todos los pesos a partir del usuario
                     dist, result = self.dijkstra(self.grafo, sender_graph)
                     receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['destination'])]
-                    route_table = {}
+                    self.route_table = {}
 
                     #Se calcula la tabla de ruteo
                     for node in list(self.grafo.nodes()):
@@ -210,14 +223,14 @@ class Linkstate(slixmpp.ClientXMPP):
                                                     list_path.append(sender_graph)
                                                     flag = False
                                                     break
-                        route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
+                        self.route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
 
                     print("\nTabla de rutas:")
-                    for i in route_table:
-                        print(i, ":", route_table[i])
+                    for i in self.route_table:
+                        print(i, ":", self.route_table[i])
 
                     #Se obtiene el path hacia el destino basado en la tabla de ruteo
-                    path = route_table[receiver_graph][0]
+                    path = self.route_table[receiver_graph][0]
                     path.reverse()
                     print("\nRuta: ", path)
 
@@ -253,7 +266,7 @@ class Linkstate(slixmpp.ClientXMPP):
                     #Se obtiene todos los pesos a partir del usuario
                     dist, result = self.dijkstra(self.grafo, sender_graph)
                     receiver_graph = list(self.json_data['config'].keys())[list(self.json_data['config'].values()).index(msg_f['destination'])]
-                    route_table = {}
+                    self.route_table = {}
 
                     #Se calcula la tabla de ruteo
                     for node in list(self.grafo.nodes()):
@@ -279,11 +292,11 @@ class Linkstate(slixmpp.ClientXMPP):
                                                     list_path.append(sender_graph)
                                                     flag = False
                                                     break
-                        route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
+                        self.route_table[node] = list_path, dist[list(self.grafo.nodes()).index(node)]
 
                     print("\nTabla de rutas:")
-                    for i in route_table:
-                        print(i, ":", route_table[i])
+                    for i in self.route_table:
+                        print(i, ":", self.route_table[i])
             except:
                 print("Error")
 
