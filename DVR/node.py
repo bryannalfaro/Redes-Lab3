@@ -47,6 +47,7 @@ class Node():
         return
 
     def update_table_bellman_ford(self, table, hop):
+        changes = 0
         for neighbor in table:
             if neighbor["username"].lower() == self.name.lower():
                 continue
@@ -59,6 +60,7 @@ class Node():
                             topology=self.topology)
             if new_node.username.lower() not in [n.username.lower() for n in self.table]:
                 self.table.append(new_node)
+                changes += 1
             else:
                 for node in self.table:
                     if node.username.lower() == new_node.username.lower():
@@ -68,7 +70,8 @@ class Node():
                         if new_weight < node.weight:
                             node.weight = new_weight
                             node.hop = hop
-        return self.table
+                            changes += 1
+        return changes > 0
 
     def get_node_by_username(self, username):
         for node in self.table:

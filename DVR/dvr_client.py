@@ -18,6 +18,7 @@ class Client(ClientXMPP, Node):
         self.connected = False
         self.users_file = open("users.txt")
         self.users_dict = json.load(self.users_file)["config"]
+        self.retrys = 0
         self.add_event_handler('session_start', self.on_session_start)
         self.add_event_handler("register", self.on_register)
         self.add_event_handler("message", self.on_message)
@@ -50,7 +51,10 @@ class Client(ClientXMPP, Node):
         # pass the &apos; character to the string '
         msg_obj = msg['body'].replace("&apos;", "'")
         msg_obj = literal_eval(msg_obj)
-        node_id = [id for id in self.users_dict.keys() if self.users_dict[id] == msg["from"].bare][0]
+        if self.option_login == 2:
+            node_id = [id for id in self.users_dict.keys() if self.users_dict[id] == msg["from"].bare][0]
+        else:
+            node_id = msg['from'].bare.split('@')[0]
         if msg_obj["type"] == "message":
             sender_neighbor = self.get_node_by_username(node_id)
             # verificar si el mensaje es para mi
@@ -70,12 +74,16 @@ class Client(ClientXMPP, Node):
         elif msg_obj["type"] == self.topology:
             new_table = literal_eval(msg_obj["message"])
 
-            self.update_table_bellman_ford(new_table, node_id)
+            if self.update_table_bellman_ford(new_table, node_id):
+                self.retrys = 0
+            else:
+                self.retrys += 1
 
     # send table to neigbors
     def share_table(self):
-        for contact in self.contacts:
-            self.send_message_to_user(contact, self.get_table(), new_message=True, ptype=self.topology)
+        if self.retrys < 5:
+            for contact in self.contacts:
+                self.send_message_to_user(contact, self.get_table(), new_message=True, ptype=self.topology)
 
     # Send message and updates the chat history of the contact
     def send_message_to_user(self, jid, message, new_message=False, ptype="message", sender_neighbor=None):
@@ -98,7 +106,10 @@ class Client(ClientXMPP, Node):
             print(f"\nReenviando mensaje de {message['from']} a {jid} por medio de {hop_node.username}")
             print(f"Lleva {message['hops']} saltos pasando por {message['nodes']} con una distancia de {message['distance']}")
             message = json.dumps(message)
-        node_username = [self.users_dict[username] for username in self.users_dict if self.users_dict[username] == self.users_dict[hop_node.username]][0]
+        if self.option_login == 2:
+            node_username = [self.users_dict[username] for username in self.users_dict if self.users_dict[username] == self.users_dict[hop_node.username]][0]
+        else:
+            node_username = hop_node.username + SERVER
         self.send_message(mto=node_username, mbody=message, mtype='chat')
 
     # TODO: cuando un router se desconecta, actualizar la tabla
