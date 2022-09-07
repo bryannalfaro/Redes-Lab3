@@ -53,11 +53,11 @@ class Linkstate(slixmpp.ClientXMPP):
         self.send_presence()
         await self.get_roster()
 
-        with open('users.txt') as f:
+        with open('users-default.txt') as f:
             self.json_data = json.load(f)
 
         self.grafo = nx.Graph() #Se crea un grafo dirigido
-        archivo=open("test.txt", "r")
+        archivo=open("topo-default.txt", "r")
         for i in archivo:
             particion= i.split(" ")
             primerNodo = particion[0]

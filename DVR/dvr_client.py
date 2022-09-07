@@ -16,7 +16,7 @@ class Client(ClientXMPP, Node):
         self.registering = False # True if client was created for registration, False if client was created for login
         self.contacts = [] # solo nombres de neighbors
         self.connected = False
-        self.users_file = open("users.txt")
+        self.users_file = open("users-default.txt")
         self.users_dict = json.load(self.users_file)["config"]
         self.retrys = 0
         self.add_event_handler('session_start', self.on_session_start)

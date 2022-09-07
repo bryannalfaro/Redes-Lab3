@@ -45,10 +45,10 @@ class Flooding(slixmpp.ClientXMPP):
         self.send_presence()
         await self.get_roster()
 
-        with open('users.txt') as f:
+        with open('users-default.txt') as f:
             self.json_data = json.load(f)
 
-        with open('test.txt') as f:
+        with open('topo-default.txt') as f:
             self.topology = json.load(f)
 
         option_cycle = True
