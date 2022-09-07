@@ -15,6 +15,6 @@ G F 1
 G I 1
 H D 1
 I C 1
-C D 1
-C E 1
-C G 1
+I D 1
+I E 1
+I G 1
