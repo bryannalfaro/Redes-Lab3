@@ -9,7 +9,7 @@ BASENAME = "group5_dvr_%"
 is_authenticated = False
 
 # Read json
-file = open("topo-defaukt.txt")
+file = open("topo-default.txt")
 topology = json.load(file)
 
 nodes = []
@@ -43,7 +43,7 @@ if option_login == 1:
 elif option_login == 2:
     username = input("Ingrese el username: ")
     password = input("Ingrese el password: ")
-    users_file = open("users-default.txt")
+    users_file = open("names-default.txt")
     users_dict = json.load(users_file)["config"]
     node_id = [id for id in users_dict.keys() if users_dict[id] == username+SERVER][0]
     node = find_node(node_id)[0]
